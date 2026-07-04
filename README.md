@@ -57,6 +57,24 @@ Sau khi bật quyền, hãy **Thoát CutPaste và mở lại**.
 
 Nếu bạn **build lại** hoặc **di chuyển app sang đường dẫn khác**, macOS có thể yêu cầu cấp quyền lại. Khi đó hãy tắt/bật lại CutPaste trong các mục quyền ở trên.
 
+### Sau khi cập nhật phiên bản mới, ⌘X/⌘V không hoạt động?
+
+Đây là do macOS còn lưu quyền của bản cũ (chữ ký app thay đổi giữa các bản build). Toggle Accessibility vẫn hiện BẬT nhưng thực tế đã vô hiệu. Khắc phục:
+
+```bash
+tccutil reset Accessibility com.antigravity.cutpaste
+tccutil reset AppleEvents com.antigravity.cutpaste
+```
+
+Sau đó mở lại CutPaste và cấp quyền Accessibility khi được hỏi.
+
+### Cảnh báo "Apple không thể xác minh..."
+
+App chưa được notarize bởi Apple (chưa có Developer ID). Cách mở:
+
+- **System Settings → Privacy & Security** → kéo xuống cuối → nhấn **Open Anyway**, hoặc
+- Chạy: `xattr -dr com.apple.quarantine /Applications/CutPaste.app`
+
 ## Yêu cầu hệ thống
 
 - macOS 13.0 (Ventura) trở lên

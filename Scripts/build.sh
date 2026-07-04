@@ -85,6 +85,15 @@ echo "Signing app bundle..."
 # consider signing with a real identity: SIGN_IDENTITY="Apple Development: ..."
 # Note: --deep is deprecated by Apple. This is a single-binary bundle with no
 # nested code, so a plain signature is correct.
+#
+# Prefer a stable local signing identity when available. Ad-hoc signatures
+# change every build, which invalidates TCC permissions (Accessibility/
+# Automation) on each rebuild. A persistent certificate keeps the designated
+# requirement stable so granted permissions survive updates.
+if [ -z "${SIGN_IDENTITY:-}" ] && security find-identity -v -p codesigning 2>/dev/null | grep -q "CutPaste Signing"; then
+    SIGN_IDENTITY="CutPaste Signing"
+    echo "Using stable signing identity: CutPaste Signing"
+fi
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
 
