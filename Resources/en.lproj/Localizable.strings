@@ -1,0 +1,34 @@
+/* Menu */
+"menu.no_cut" = "No files cut";
+"menu.pending_count" = "%d file(s) waiting to paste";
+"menu.cancel_cut" = "Cancel Cut";
+"menu.undo_move" = "Undo Move";
+"menu.launch_login" = "Launch at Login";
+"menu.quit" = "Quit";
+
+/* Buttons */
+"button.open" = "Open Settings";
+"button.close" = "Close";
+
+/* Accessibility alert */
+"alert.accessibility.title" = "CutPaste needs Accessibility permission";
+"alert.accessibility.body" = "Please go to System Settings → Privacy & Security → Accessibility, add CutPaste and enable the toggle.\n\nAfter enabling, quit CutPaste and reopen it.";
+
+/* Automation alert */
+"alert.automation.title" = "CutPaste needs Automation permission to control Finder";
+"alert.automation.body" = "Please go to System Settings → Privacy & Security → Automation, then allow CutPaste to control Finder.\n\nAfter enabling, quit CutPaste and reopen it.";
+
+/* Notifications */
+"notif.cut.title" = "Cut";
+"notif.cut.body" = "%d file(s) ready to paste";
+"notif.paste.title" = "Moved";
+"notif.paste.body" = "Moved %d file(s)";
+"notif.undo.title" = "Undone";
+"notif.undo.body" = "Restored %d file(s) to their original location";
+"notif.error.title" = "CutPaste - Error";
+"notif.dest_fail" = "Could not determine the destination folder";
+
+/* File errors */
+"error.not_found" = "File not found: %@";
+"error.not_writable" = "No write permission for: %@";
+"error.move_failed" = "Failed to move %@: %@";

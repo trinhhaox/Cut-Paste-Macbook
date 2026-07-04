@@ -4,6 +4,7 @@ class StatusBarController: NSObject {
     private var statusItem: NSStatusItem!
     private var cutCountItem: NSMenuItem!
     private var cancelCutItem: NSMenuItem!
+    private var undoMoveItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
     private let eventTapManager = EventTapManager()
     private let loginItemManager = LoginItemManager()
@@ -22,6 +23,9 @@ class StatusBarController: NSObject {
         eventTapManager.onCutBufferChanged = { [weak self] fileCount in
             self?.updateStatus(fileCount: fileCount)
         }
+        eventTapManager.onMoveHistoryChanged = { [weak self] canUndo in
+            self?.updateUndoAvailability(canUndo)
+        }
 
         eventTapManager.start()
     }
@@ -35,25 +39,30 @@ class StatusBarController: NSObject {
 
         menu.addItem(NSMenuItem.separator())
 
-        cutCountItem = NSMenuItem(title: "Không có file nào đang cut", action: nil, keyEquivalent: "")
+        cutCountItem = NSMenuItem(title: L.t("menu.no_cut"), action: nil, keyEquivalent: "")
         cutCountItem.isEnabled = false
         menu.addItem(cutCountItem)
 
-        cancelCutItem = NSMenuItem(title: "Hủy Cut", action: #selector(cancelCut), keyEquivalent: "")
+        cancelCutItem = NSMenuItem(title: L.t("menu.cancel_cut"), action: #selector(cancelCut), keyEquivalent: "")
         cancelCutItem.target = self
         cancelCutItem.isHidden = true
         menu.addItem(cancelCutItem)
 
+        undoMoveItem = NSMenuItem(title: L.t("menu.undo_move"), action: #selector(undoMove), keyEquivalent: "")
+        undoMoveItem.target = self
+        undoMoveItem.isHidden = true
+        menu.addItem(undoMoveItem)
+
         menu.addItem(NSMenuItem.separator())
 
-        launchAtLoginItem = NSMenuItem(title: "Khởi động cùng macOS", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem = NSMenuItem(title: L.t("menu.launch_login"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchAtLoginItem.target = self
         launchAtLoginItem.state = loginItemManager.isEnabled ? .on : .off
         menu.addItem(launchAtLoginItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let quitItem = NSMenuItem(title: "Thoát", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: L.t("menu.quit"), action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -65,18 +74,28 @@ class StatusBarController: NSObject {
             guard let self = self else { return }
             if fileCount > 0 {
                 self.statusItem.button?.image = NSImage(systemSymbolName: "scissors.badge.ellipsis", accessibilityDescription: "CutPaste - \(fileCount) file")
-                self.cutCountItem.title = "\(fileCount) file đang chờ paste"
+                self.cutCountItem.title = L.t("menu.pending_count", fileCount)
                 self.cancelCutItem.isHidden = false
             } else {
                 self.statusItem.button?.image = NSImage(systemSymbolName: "scissors", accessibilityDescription: "CutPaste")
-                self.cutCountItem.title = "Không có file nào đang cut"
+                self.cutCountItem.title = L.t("menu.no_cut")
                 self.cancelCutItem.isHidden = true
             }
         }
     }
 
+    private func updateUndoAvailability(_ canUndo: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            self?.undoMoveItem.isHidden = !canUndo
+        }
+    }
+
     @objc private func cancelCut() {
         eventTapManager.clearCutBuffer()
+    }
+
+    @objc private func undoMove() {
+        eventTapManager.undoLastMove()
     }
 
     @objc private func toggleLaunchAtLogin() {

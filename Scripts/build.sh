@@ -6,7 +6,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$PROJECT_DIR/build"
 APP_NAME="CutPaste"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
-VERSION="1.0.1"
+
+# Single source of truth for the version: read it from Info.plist.
+VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$PROJECT_DIR/Resources/Info.plist")"
 
 SWIFT_SOURCES=(
     "$PROJECT_DIR/Sources/main.swift"
@@ -15,12 +17,15 @@ SWIFT_SOURCES=(
     "$PROJECT_DIR/Sources/FinderBridge.swift"
     "$PROJECT_DIR/Sources/FileMover.swift"
     "$PROJECT_DIR/Sources/LoginItemManager.swift"
+    "$PROJECT_DIR/Sources/Localization.swift"
+    "$PROJECT_DIR/Sources/NotificationManager.swift"
 )
 
 SWIFT_FLAGS=(
     -O
     -framework Cocoa
     -framework ServiceManagement
+    -framework UserNotifications
 )
 
 echo "=== Building $APP_NAME v$VERSION ==="
@@ -65,14 +70,23 @@ cp "$BUILD_DIR/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$PROJECT_DIR/Resources/Info.plist" "$APP_BUNDLE/Contents/"
 cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
 
+# Copy localized strings (English + Vietnamese)
+for lproj in en.lproj vi.lproj; do
+    if [ -d "$PROJECT_DIR/Resources/$lproj" ]; then
+        cp -r "$PROJECT_DIR/Resources/$lproj" "$APP_BUNDLE/Contents/Resources/"
+    fi
+done
+
 # Remove standalone binary
 rm "$BUILD_DIR/$APP_NAME"
 
 echo "Signing app bundle..."
 # Default to ad-hoc signing. For stable TCC permissions (Accessibility/Input Monitoring/Automation),
 # consider signing with a real identity: SIGN_IDENTITY="Apple Development: ..."
+# Note: --deep is deprecated by Apple. This is a single-binary bundle with no
+# nested code, so a plain signature is correct.
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
-codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
+codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
 
 echo "App bundle created at: $APP_BUNDLE"
 

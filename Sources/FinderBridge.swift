@@ -31,11 +31,14 @@ struct FinderBridge {
     }
 
     static func getCurrentFolder() -> String? {
+        // `insertion location` is exactly where Finder itself would paste:
+        // the front window's target, or the desktop when no window is frontmost.
+        // Using it (instead of `front window target`) keeps the destination in
+        // sync with the selection even with multiple Finder windows open.
         let script = """
         tell application "Finder"
             try
-                set currentFolder to (target of front Finder window) as alias
-                return POSIX path of currentFolder
+                return POSIX path of (insertion location as alias)
             on error
                 return POSIX path of (path to desktop folder)
             end try
@@ -84,16 +87,11 @@ struct FinderBridge {
             DispatchQueue.main.async {
                 NSApp.activate(ignoringOtherApps: true)
                 let alert = NSAlert()
-                alert.messageText = "CutPaste cần quyền Automation để điều khiển Finder"
-                alert.informativeText = """
-Vui lòng vào System Settings → Privacy & Security → Automation,
-sau đó bật quyền cho CutPaste điều khiển Finder.
-
-Sau khi bật, hãy thoát CutPaste và mở lại.
-"""
+                alert.messageText = L.t("alert.automation.title")
+                alert.informativeText = L.t("alert.automation.body")
                 alert.alertStyle = .warning
-                alert.addButton(withTitle: "Mở Automation")
-                alert.addButton(withTitle: "Đóng")
+                alert.addButton(withTitle: L.t("button.open"))
+                alert.addButton(withTitle: L.t("button.close"))
 
                 if alert.runModal() == .alertFirstButtonReturn {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {

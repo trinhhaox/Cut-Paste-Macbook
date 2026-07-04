@@ -1,0 +1,34 @@
+/* Menu */
+"menu.no_cut" = "Không có file nào đang cut";
+"menu.pending_count" = "%d file đang chờ paste";
+"menu.cancel_cut" = "Hủy Cut";
+"menu.undo_move" = "Hoàn tác di chuyển";
+"menu.launch_login" = "Khởi động cùng macOS";
+"menu.quit" = "Thoát";
+
+/* Buttons */
+"button.open" = "Mở cài đặt";
+"button.close" = "Đóng";
+
+/* Accessibility alert */
+"alert.accessibility.title" = "CutPaste cần quyền Accessibility";
+"alert.accessibility.body" = "Vui lòng vào System Settings → Privacy & Security → Accessibility, thêm CutPaste và bật toggle.\n\nSau khi bật, hãy thoát CutPaste và mở lại.";
+
+/* Automation alert */
+"alert.automation.title" = "CutPaste cần quyền Automation để điều khiển Finder";
+"alert.automation.body" = "Vui lòng vào System Settings → Privacy & Security → Automation, sau đó bật quyền cho CutPaste điều khiển Finder.\n\nSau khi bật, hãy thoát CutPaste và mở lại.";
+
+/* Notifications */
+"notif.cut.title" = "Đã cut";
+"notif.cut.body" = "%d file sẵn sàng để paste";
+"notif.paste.title" = "Đã di chuyển";
+"notif.paste.body" = "Đã di chuyển %d file";
+"notif.undo.title" = "Đã hoàn tác";
+"notif.undo.body" = "Đã trả %d file về vị trí cũ";
+"notif.error.title" = "CutPaste - Lỗi";
+"notif.dest_fail" = "Không thể xác định thư mục đích";
+
+/* File errors */
+"error.not_found" = "File không tồn tại: %@";
+"error.not_writable" = "Không có quyền ghi vào: %@";
+"error.move_failed" = "Lỗi di chuyển %@: %@";

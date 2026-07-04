@@ -9,8 +9,13 @@ macOS Finder chỉ hỗ trợ Copy (⌘C) + Paste (⌘V). CutPaste bổ sung tí
 - **⌘X** — Cut file/folder đang chọn trong Finder
 - **⌘V** — Paste (di chuyển) file đến thư mục hiện tại
 - **⌘C** — Copy bình thường (tự động hủy cut nếu có)
+- **⌘Z** — Hoàn tác lần paste gần nhất (trả file về vị trí cũ), hoặc dùng menu **Hoàn tác di chuyển**
+- **Không chiếm phím khi đang đổi tên file** — ⌘X/⌘C/⌘V/⌘Z hoạt động bình thường trong ô sửa tên
+- **Thông báo dạng banner + âm thanh** khi cut / paste / hoàn tác (thay cho popup chặn màn hình)
+- Thư mục đích bám theo cửa sổ Finder đang thao tác (dùng *insertion location*) — chính xác kể cả khi mở nhiều cửa sổ
 - Hiển thị icon trên menu bar với số file đang chờ paste
 - Tự động xử lý trùng tên file
+- Giao diện song ngữ **Tiếng Việt / English** (theo ngôn ngữ hệ thống)
 - Hỗ trợ khởi động cùng macOS
 - Universal Binary — chạy trên cả Apple Silicon và Intel Mac
 
@@ -45,6 +50,8 @@ Trên một số phiên bản macOS, bạn cần bật thêm:
 
 - **Privacy & Security → Input Monitoring** (CutPaste)
 - **Privacy & Security → Automation** → cho phép **CutPaste** điều khiển **Finder**
+
+App cũng sẽ hỏi quyền **Notifications** để hiển thị banner khi cut/paste — không bắt buộc, nếu từ chối app vẫn hoạt động bình thường (chỉ báo lỗi bằng popup khi cần).
 
 Sau khi bật quyền, hãy **Thoát CutPaste và mở lại**.
 

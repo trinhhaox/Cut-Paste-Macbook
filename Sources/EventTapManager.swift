@@ -14,8 +14,14 @@ class EventTapManager {
     }
 
     private let fileMover = FileMover()
+    private let notifications = NotificationManager.shared
+
+    // Records the most recent paste so it can be undone with ⌘Z.
+    // Only touched on the main thread (event tap + paste/undo completion).
+    private var lastMove: [MovedItem] = []
 
     var onCutBufferChanged: ((Int) -> Void)?
+    var onMoveHistoryChanged: ((Bool) -> Void)?
 
     private var permissionTimer: Timer?
 
@@ -59,7 +65,7 @@ class EventTapManager {
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
             NSLog("CutPaste: Không thể tạo event tap dù đã có quyền Accessibility")
-            showPermissionsAlert(missingAccessibility: false, missingInputMonitoring: false)
+            showPermissionsAlert()
             return
         }
 
@@ -69,6 +75,7 @@ class EventTapManager {
         CGEvent.tapEnable(tap: tap, enable: true)
 
         NSLog("CutPaste: Event tap đã khởi động thành công")
+        notifications.requestAuthorization()
         FinderBridge.preflightAutomation()
     }
 
@@ -91,6 +98,11 @@ class EventTapManager {
         NSLog("CutPaste: Cut buffer đã được xóa")
     }
 
+    // Public entry point for the "Undo Move" menu item.
+    func undoLastMove() {
+        performUndo()
+    }
+
     fileprivate func handleKeyEvent(_ event: CGEvent) -> CGEvent? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
@@ -106,6 +118,12 @@ class EventTapManager {
         }
 
         guard FinderBridge.isFinderActive() else {
+            return event
+        }
+
+        // Don't hijack shortcuts while the user is editing text (e.g. inline
+        // rename of a file). Let ⌘X/⌘C/⌘V/⌘Z fall through to the text field.
+        if isEditingText() {
             return event
         }
 
@@ -127,9 +145,36 @@ class EventTapManager {
             }
             return event
 
+        case 6: // Z key - Undo our last move (otherwise let Finder handle it)
+            if !lastMove.isEmpty {
+                performUndo()
+                return nil
+            }
+            return event
+
         default:
             return event
         }
+    }
+
+    // True when the focused UI element accepts text input, so our shortcuts
+    // should not be intercepted.
+    private func isEditingText() -> Bool {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focused: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
+              let element = focused else {
+            return false
+        }
+        let axElement = element as! AXUIElement
+        var roleRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axElement, kAXRoleAttribute as CFString, &roleRef) == .success,
+              let role = roleRef as? String else {
+            return false
+        }
+        return role == (kAXTextFieldRole as String)
+            || role == (kAXTextAreaRole as String)
+            || role == (kAXComboBoxRole as String)
     }
 
     private func handleCutAsync() {
@@ -142,7 +187,12 @@ class EventTapManager {
                 return
             }
             self.cutBuffer = files
+            // Starting a new cut retires any previous paste's undo, so ⌘Z stops
+            // shadowing Finder's native undo once you've moved on.
+            self.setLastMove([])
             self.onCutBufferChanged?(files.count)
+            self.notifications.playSound("Tink")
+            self.notifications.notify(title: L.t("notif.cut.title"), body: L.t("notif.cut.body", files.count))
             NSLog("CutPaste: Đã cut \(files.count) file(s)")
         }
     }
@@ -158,7 +208,7 @@ class EventTapManager {
 
             guard let destination = FinderBridge.getCurrentFolder() else {
                 NSLog("CutPaste: Không thể xác định thư mục đích")
-                self.showNotification(title: "CutPaste", message: "Không thể xác định thư mục đích")
+                self.notifications.notifyError(title: L.t("notif.error.title"), body: L.t("notif.dest_fail"))
                 return
             }
 
@@ -167,49 +217,66 @@ class EventTapManager {
                 let result = self.fileMover.moveFiles(filesToMove, to: destination)
                 DispatchQueue.main.async {
                     switch result {
-                    case .success(let count):
+                    case .success(let moved):
                         self.clearCutBuffer()
-                        NSLog("CutPaste: Đã di chuyển \(count) file(s) đến \(destination)")
+                        // Nothing actually moved (e.g. files already in destination):
+                        // no undo record, no banner.
+                        guard !moved.isEmpty else { return }
+                        self.setLastMove(moved)
+                        self.notifications.playSound("Glass")
+                        self.notifications.notify(title: L.t("notif.paste.title"), body: L.t("notif.paste.body", moved.count))
+                        NSLog("CutPaste: Đã di chuyển \(moved.count) file(s) đến \(destination)")
                     case .failure(let error):
                         NSLog("CutPaste: Lỗi di chuyển file: \(error)")
-                        self.showNotification(title: "CutPaste - Lỗi", message: error.localizedDescription)
+                        self.notifications.notifyError(title: L.t("notif.error.title"), body: error.localizedDescription)
                     }
                 }
             }
         }
     }
 
-    private func showPermissionsAlert(missingAccessibility: Bool, missingInputMonitoring: Bool) {
+    private func performUndo() {
+        let items = lastMove
+        guard !items.isEmpty else { return }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let result = self.fileMover.undoMoves(items)
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let count):
+                    self.setLastMove([])
+                    self.notifications.playSound("Bottle")
+                    self.notifications.notify(title: L.t("notif.undo.title"), body: L.t("notif.undo.body", count))
+                    NSLog("CutPaste: Đã hoàn tác \(count) file(s)")
+                case .failure(let error):
+                    NSLog("CutPaste: Lỗi hoàn tác: \(error)")
+                    self.notifications.notifyError(title: L.t("notif.error.title"), body: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func setLastMove(_ items: [MovedItem]) {
+        lastMove = items
+        onMoveHistoryChanged?(!items.isEmpty)
+    }
+
+    private func showPermissionsAlert() {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
             let alert = NSAlert()
-            alert.messageText = "CutPaste cần quyền Accessibility"
-            alert.informativeText = """
-Vui lòng vào System Settings → Privacy & Security → Accessibility,
-thêm CutPaste và bật toggle.
-
-Sau khi bật, hãy thoát CutPaste và mở lại.
-"""
+            alert.messageText = L.t("alert.accessibility.title")
+            alert.informativeText = L.t("alert.accessibility.body")
             alert.alertStyle = .warning
-            alert.addButton(withTitle: "Mở Accessibility")
-            alert.addButton(withTitle: "Đóng")
+            alert.addButton(withTitle: L.t("button.open"))
+            alert.addButton(withTitle: L.t("button.close"))
 
             if alert.runModal() == .alertFirstButtonReturn {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                     NSWorkspace.shared.open(url)
                 }
             }
-        }
-    }
-
-    private func showNotification(title: String, message: String) {
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            let alert = NSAlert()
-            alert.messageText = title
-            alert.informativeText = message
-            alert.alertStyle = .informational
-            alert.runModal()
         }
     }
 }
