@@ -4,6 +4,8 @@
 "menu.cancel_cut" = "Cancel Cut";
 "menu.undo_move" = "Undo Move";
 "menu.launch_login" = "Launch at Login";
+"menu.language" = "Language";
+"menu.language.system" = "System Default";
 "menu.quit" = "Quit";
 
 /* Buttons */

@@ -15,7 +15,7 @@ macOS Finder chỉ hỗ trợ Copy (⌘C) + Paste (⌘V). CutPaste bổ sung tí
 - Thư mục đích bám theo cửa sổ Finder đang thao tác (dùng *insertion location*) — chính xác kể cả khi mở nhiều cửa sổ
 - Hiển thị icon trên menu bar với số file đang chờ paste
 - Tự động xử lý trùng tên file
-- Giao diện song ngữ **Tiếng Việt / English** (theo ngôn ngữ hệ thống)
+- Giao diện song ngữ **Tiếng Việt / English** — tự chọn trong menu **Ngôn ngữ** (Theo hệ thống / English / Tiếng Việt), đổi ngay không cần khởi động lại
 - Hỗ trợ khởi động cùng macOS
 - Universal Binary — chạy trên cả Apple Silicon và Intel Mac
 

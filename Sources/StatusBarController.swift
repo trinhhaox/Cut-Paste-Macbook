@@ -9,6 +9,10 @@ class StatusBarController: NSObject {
     private let eventTapManager = EventTapManager()
     private let loginItemManager = LoginItemManager()
 
+    // Current state, kept so the menu can be rebuilt (e.g. on language change).
+    private var currentFileCount = 0
+    private var canUndo = false
+
     override init() {
         super.init()
 
@@ -26,6 +30,11 @@ class StatusBarController: NSObject {
         eventTapManager.onMoveHistoryChanged = { [weak self] canUndo in
             self?.updateUndoAvailability(canUndo)
         }
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(rebuildMenu),
+            name: L.languageChanged, object: nil
+        )
 
         eventTapManager.start()
     }
@@ -60,6 +69,8 @@ class StatusBarController: NSObject {
         launchAtLoginItem.state = loginItemManager.isEnabled ? .on : .off
         menu.addItem(launchAtLoginItem)
 
+        menu.addItem(makeLanguageMenuItem())
+
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(title: L.t("menu.quit"), action: #selector(quit), keyEquivalent: "q")
@@ -67,27 +78,66 @@ class StatusBarController: NSObject {
         menu.addItem(quitItem)
 
         statusItem.menu = menu
+        applyCurrentState()
+    }
+
+    private func makeLanguageMenuItem() -> NSMenuItem {
+        let languageItem = NSMenuItem(title: L.t("menu.language"), action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        for lang in AppLanguage.allCases {
+            let item = NSMenuItem(title: lang.displayName, action: #selector(changeLanguage(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = lang.rawValue
+            item.state = (L.current == lang) ? .on : .off
+            submenu.addItem(item)
+        }
+        languageItem.submenu = submenu
+        return languageItem
+    }
+
+    // Re-applies dynamic state (cut count, undo visibility) after a rebuild.
+    private func applyCurrentState() {
+        if currentFileCount > 0 {
+            cutCountItem.title = L.t("menu.pending_count", currentFileCount)
+            cancelCutItem.isHidden = false
+        } else {
+            cutCountItem.title = L.t("menu.no_cut")
+            cancelCutItem.isHidden = true
+        }
+        undoMoveItem.isHidden = !canUndo
+    }
+
+    @objc private func rebuildMenu() {
+        DispatchQueue.main.async { [weak self] in
+            self?.setupMenu()
+        }
     }
 
     private func updateStatus(fileCount: Int) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            self.currentFileCount = fileCount
             if fileCount > 0 {
                 self.statusItem.button?.image = NSImage(systemSymbolName: "scissors.badge.ellipsis", accessibilityDescription: "CutPaste - \(fileCount) file")
-                self.cutCountItem.title = L.t("menu.pending_count", fileCount)
-                self.cancelCutItem.isHidden = false
             } else {
                 self.statusItem.button?.image = NSImage(systemSymbolName: "scissors", accessibilityDescription: "CutPaste")
-                self.cutCountItem.title = L.t("menu.no_cut")
-                self.cancelCutItem.isHidden = true
             }
+            self.applyCurrentState()
         }
     }
 
     private func updateUndoAvailability(_ canUndo: Bool) {
         DispatchQueue.main.async { [weak self] in
-            self?.undoMoveItem.isHidden = !canUndo
+            guard let self = self else { return }
+            self.canUndo = canUndo
+            self.undoMoveItem.isHidden = !canUndo
         }
+    }
+
+    @objc private func changeLanguage(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let lang = AppLanguage(rawValue: raw) else { return }
+        L.current = lang
     }
 
     @objc private func cancelCut() {

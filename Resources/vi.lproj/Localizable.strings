@@ -4,6 +4,8 @@
 "menu.cancel_cut" = "Hủy Cut";
 "menu.undo_move" = "Hoàn tác di chuyển";
 "menu.launch_login" = "Khởi động cùng macOS";
+"menu.language" = "Ngôn ngữ";
+"menu.language.system" = "Theo hệ thống";
 "menu.quit" = "Thoát";
 
 /* Buttons */
